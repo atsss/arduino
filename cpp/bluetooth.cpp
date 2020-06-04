@@ -7,12 +7,7 @@ const int VERSION = 0x00000000;
 
 BLEService                     service                       (BLE_SENSE_UUID("0000"));
 BLEUnsignedIntCharacteristic   versionCharacteristic         (BLE_SENSE_UUID("1001"), BLERead);
-BLEFloatCharacteristic         accelerationXCharacteristic   (BLE_SENSE_UUID("3001"), BLERead);
-BLEFloatCharacteristic         accelerationYCharacteristic   (BLE_SENSE_UUID("3002"), BLERead);
-BLEFloatCharacteristic         accelerationZCharacteristic   (BLE_SENSE_UUID("3003"), BLERead);
-BLEFloatCharacteristic         gyroscopeXCharacteristic      (BLE_SENSE_UUID("3011"), BLERead);
-BLEFloatCharacteristic         gyroscopeYCharacteristic      (BLE_SENSE_UUID("3012"), BLERead);
-BLEFloatCharacteristic         gyroscopeZCharacteristic      (BLE_SENSE_UUID("3013"), BLERead);
+BLEUnsignedIntCharacteristic   accelerationCharacteristic    (BLE_SENSE_UUID("3001"), BLENotify); // Array of 3 floats, G
 
 
 // String to calculate the local and device name
@@ -25,7 +20,7 @@ void setup() {
   Serial.println("Started");
 
   if (!IMU.begin()) {
-    Serial.println("Failled to initialized IMU!");
+    Serial.println("Failed to initialized IMU!");
     while (1);
   }
 
@@ -55,12 +50,7 @@ void setup() {
   BLE.setAdvertisedService(service);
 
   service.addCharacteristic(versionCharacteristic);
-  service.addCharacteristic(accelerationXCharacteristic);
-  service.addCharacteristic(accelerationYCharacteristic);
-  service.addCharacteristic(accelerationZCharacteristic);
-  service.addCharacteristic(gyroscopeXCharacteristic);
-  service.addCharacteristic(gyroscopeYCharacteristic);
-  service.addCharacteristic(gyroscopeZCharacteristic);
+  service.addCharacteristic(accelerationCharacteristic);
 
   versionCharacteristic.setValue(VERSION);
 
@@ -68,31 +58,24 @@ void setup() {
   BLE.advertise();
 }
 
+void sendAccelerationData(){
+  float x, y, z;
+  IMU.readAcceleration(x, y, z);
+  float acceleration[3] = { x, y, z };
+  unsigned int accelerationPower = sqrt(x*x + y*y + z*z) * 1000;
+
+  if(!isnan(accelerationPower)){
+    Serial.println(accelerationPower);
+    accelerationCharacteristic.writeValue(accelerationPower);
+  }
+}
+
 void loop() {
   while (BLE.connected()) {
-    float x, y, z;
-    IMU.readAcceleration(x, y, z);
 
-    accelerationXCharacteristic.writeValue(x);
-    accelerationYCharacteristic.writeValue(y);
-    accelerationZCharacteristic.writeValue(z);
+    if (accelerationCharacteristic.subscribed() && IMU.accelerationAvailable()) {
+      sendAccelerationData();
+    }
 
-    Serial.println("acceleration");
-    Serial.print("x: "); Serial.print(x);
-    Serial.print(", y: "); Serial.print(y);
-    Serial.print(", z: "); Serial.println(z);
-
-    IMU.readGyroscope(x, y, z);
-
-    gyroscopeXCharacteristic.writeValue(x);
-    gyroscopeYCharacteristic.writeValue(y);
-    gyroscopeZCharacteristic.writeValue(z);
-
-    Serial.println("gyro");
-    Serial.print("x: "); Serial.print(x);
-    Serial.print(", y: "); Serial.print(y);
-    Serial.print(", z: "); Serial.println(z);
-
-    // delay(500);
   }
 }
