@@ -17,15 +17,20 @@ function setup() {
   const connectButton = createButton('Connect and Start Notifications')
   connectButton.mousePressed(connectAndStartNotify);
 
-  frameRate(5);
+  frameRate(2);
 }
 
 function draw() {
   background("#FFF");
 
-  let volume = map(BLEsense.accelerometer.value, 60, 180, 0, 1);
-  volume = constrain(volume, 0, 1);
-  sound.setVolume(volume, 0.5);
+  let volume = map(BLEsense.accelerometer.value, 60, 280, 0.2, 1);
+  volume = constrain(volume, 0.1, 1);
+
+  if(volume > 0.6) {
+    sound.setVolume(1, 0.1);
+  } else  {
+    sound.setVolume(0.1, 0.1);
+  }
 
   noStroke();
   fill('red');
