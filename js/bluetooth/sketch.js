@@ -1,123 +1,75 @@
-const serviceUuid = "6fbe1da7-0000-44de-92c4-bb6e04fb0212";
-
-let aXCharacteristics;
-let aYCharacteristics;
-let aZCharacteristics;
-let gXCharacteristics;
-let gYCharacteristics;
-let gZCharacteristics;
-let aX;
-let aY;
-let aZ;
-let gX;
-let gY;
-let gZ;
 let myBLE;
+let sound;
 
-let myCharacteristic;
+function preload() {
+  sound = loadSound('assets/loop.mp3');
+}
 
 function setup() {
   createCanvas(400, 400);
-    // Create a p5ble class
+  sound.loop();
+
+  // Create a p5ble class
   myBLE = new p5ble();
 
-  createCanvas(600, 400);
-  background("#FFF");
 
   // Create a 'Connect and Start Notifications' button
   const connectButton = createButton('Connect and Start Notifications')
   connectButton.mousePressed(connectAndStartNotify);
 
-  frameRate(10);
+  frameRate(5);
 }
 
 function draw() {
+  background("#FFF");
+
+  let volume = map(BLEsense.accelerometer.value, 60, 180, 0, 1);
+  volume = constrain(volume, 0, 1);
+  sound.setVolume(volume, 0.5);
+
   noStroke();
-  // console.log('accelerator: ', aX, aY, aZ);
-  // console.log('gyro: ', gX, gY, gZ);
+  fill('red');
+  circle(width/2, height/2, volume * 200);
 }
 
 function connectAndStartNotify() {
   // Connect to a device by passing the service UUID
-  myBLE.connect(serviceUuid, gotCharacteristics);
+  myBLE.connect(BLEsense.serviceUuid, gotCharacteristics);
 }
 
 // A function that will be called once got characteristics
 function gotCharacteristics(error, characteristics) {
   if (error) console.log('error: ', error);
-
-  console.log(characteristics);
+  console.log(characteristics[1].uuid);
 
   for(let i = 0; i < characteristics.length;i++){
-    if(characteristics[i].uuid == BLEsense.aX.uuid){
-      console.log("Got aX");
-      aXCharacteristics = characteristics[i];
-      myBLE.read(aXCharacteristics, 'float32', handleAX);
-    } else if(characteristics[i].uuid == BLEsense.aY.uuid){
-      console.log("Got aY");
-      aYCharacteristics = characteristics[i];
-      myBLE.read(aYCharacteristics, 'float32', handleAY);
-    } else if(characteristics[i].uuid == BLEsense.aZ.uuid){
-      console.log("Got aZ");
-      aZCharacteristics = characteristics[i];
-      myBLE.read(aZCharacteristics, 'float32', handleAZ);
-    } else if(characteristics[i].uuid == BLEsense.gX.uuid){
-      console.log("Got gX");
-      gXCharacteristics = characteristics[i];
-      myBLE.read(gZCharacteristics, 'float32', handleGX);
-    } else if(characteristics[i].uuid == BLEsense.gY.uuid){
-      console.log("Got gY");
-      gYCharacteristics = characteristics[i];
-      myBLE.read(gYCharacteristics, 'float32', handleGY);
-    } else if(characteristics[i].uuid == BLEsense.gZ.uuid){
-      console.log("Got gZ");
-      gZCharacteristics = characteristics[i];
-      myBLE.read(gZCharacteristics, 'float32', handleGZ);
+    if(characteristics[i].uuid == BLEsense.accelerometer.uuid){
+      console.log("Got accelerometer");
+      BLEsense.accelerometer.characteristics = characteristics[i];
+      // Start notifications on the characteristic by passing the characteristic
+      // And a callback function to handle notifications
+      myBLE.startNotifications(BLEsense.accelerometer.characteristics, handleAccelerometer);
     }
   }
 }
 
-function handleAX(error, value) {
-  if (error) console.log('error: ', error);
-  aX = floor(value * 100) / 100;
-  myBLE.read(aXCharacteristics, 'float32', handleAX);
+// A function that will be called once got characteristics
+function handleAccelerometer(data) {
+  console.log('Accelerometer: ', data);
+  BLEsense.accelerometer.value = data;
 }
 
-function handleAY(error, value) {
-  if (error) console.log('error: ', error);
-  aY = floor(value * 100) / 100;
-  myBLE.read(aYCharacteristics, 'float32', handleAY);
-}
+var BLEsense = {
+  serviceUuid : "6fbe1da7-0000-44de-92c4-bb6e04fb0212",
 
-function handleAZ(error, value) {
-  if (error) console.log('error: ', error);
-  aZ = floor(value * 100) / 100;
-  myBLE.read(aZCharacteristics, 'float32', handleAZ);
-}
-
-function handleGX(error, value) {
-  if (error) console.log('error: ', error);
-  gX = floor(value * 100) / 100;
-  myBLE.read(gXCharacteristics, 'float32', handleGX);
-}
-
-function handleGY(error, value) {
-  if (error) console.log('error: ', error);
-  gY = floor(value * 100) / 100;
-  myBLE.read(gYCharacteristics, 'float32', handleGY);
-}
-
-function handleGZ(error, value) {
-  if (error) console.log('error: ', error);
-  gZ = floor(value * 100) / 100;
-  myBLE.read(gZCharacteristics, 'float32', handleGZ);
-}
-
-const BLEsense = {
-  aX: { uuid: '6fbe1da7-3001-44de-92c4-bb6e04fb0212' },
-  aY: { uuid: '6fbe1da7-3002-44de-92c4-bb6e04fb0212' },
-  aZ: { uuid: '6fbe1da7-3003-44de-92c4-bb6e04fb0212' },
-  gX: { uuid: '6fbe1da7-3011-44de-92c4-bb6e04fb0212' },
-  gY: { uuid: '6fbe1da7-3012-44de-92c4-bb6e04fb0212' },
-  gZ: { uuid: '6fbe1da7-3013-44de-92c4-bb6e04fb0212' }
+  accelerometer:
+  {
+    uuid: '6fbe1da7-3001-44de-92c4-bb6e04fb0212',
+    characteristics: null,
+    value: 0
+  }
 };
+
+function touchStarted() {
+  getAudioContext().resume();
+}
